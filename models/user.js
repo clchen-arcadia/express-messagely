@@ -49,6 +49,12 @@ class User {
         [username]);
     if(result === undefined) {
       throw new NotFoundError("No such user exists");
+      /** Giving information to a bad actor.
+       * Also NotFoundErrors reserved for a missing resource.
+       * This is not doing what the docstring says.
+       * Also if anything -- this is an Unauthorized Error not a 404NotFound.
+       * Until you're authenticated -- systems should be very terse/tightlipped.
+       */
     }
     const dbPassword = result.rows[0].password;
 
@@ -120,7 +126,7 @@ class User {
     const user = results.rows[0];
 
     if(user === undefined) {
-      throw new NotFoundError("No such user exists");
+      throw new NotFoundError("No such user exists"); //NOTE: this is reasonable place for this/appropriate.
     }
 
     return user;
@@ -156,14 +162,10 @@ class User {
               m.sent_at,
               m.read_at
         FROM messages AS m
-        JOIN users AS u
-          ON m.from_username = u.username
         JOIN users AS to_u
           ON m.to_username = to_u.username
         WHERE m.from_username = $1`,
       [username]);
-
-    console.log("TESTTTT-------", result.rows);
 
     return result.rows.map(
       r => ({
@@ -177,7 +179,7 @@ class User {
         "body": r.body,
         "sent_at": r.sent_at,
         "read_at": r.read_at
-      }));
+      })); 
   }
 
   /** Return messages to this user.
@@ -210,21 +212,11 @@ class User {
               m.sent_at,
               m.read_at
         FROM messages AS m
-        JOIN users AS u
-          ON m.to_username = u.username
         JOIN users AS f_u
           ON m.from_username = f_u.username
         WHERE m.to_username = $1`,
       [username]);
-    // TODO:
-    /** The problem with
-     *  FROM messages AS m
-        JOIN users AS u
-          ON m.to_username = $1
-        JOIN users AS f_u
-          ON m.from_username = f_u.username
-        (with no WHERE statement)
-     */
+
 
     return result.rows.map(
       r => ({
