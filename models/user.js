@@ -26,31 +26,43 @@ class User {
         RETURNING username, password, first_name, last_name, phone`,
       [username, password, first_name, last_name, phone]);
 
+    User.updateLoginTimestamp(username);
+
     return result.rows[0];
   }
 
   /** Authenticate: is username/password valid? Returns boolean. */
   //TODO: is the incoming password to this method hashed or not??
+  // They are currently NOT HASHED
 
   static async authenticate(username, password) {
 
-    // hashes given password
-    const hashedPassword = await bcrypt.hash(
-      password, BCRYPT_WORK_FACTOR);
+    // hashes given password TODO: not implemented yet
+    // const hashedPassword = await bcrypt.hash(
+    //   password, BCRYPT_WORK_FACTOR);
 
-    // access stored known hashed password
+    // access stored known non-hashed password
     const result = await db.query(
         `SELECT password
         FROM users
         WHERE username = $1`,
         [username]);
-    const user = result.rows[0];
+    if(result === undefined) {
+      throw new NotFoundError("No such user exists");
+    }
+    const dbPassword = result.rows[0].password;
 
-    // compare the given hash to the known hash
-    if (user !== undefined) {
-      if (await bcrypt.compare(hashedPassword, user.password) === true) {
+    // compare the given hash to the known hash TODO: bcrypt not implemented yet
+    // if (user !== undefined) {
+    //   if (await bcrypt.compare(hashedPassword, user.password) === true) {
+    //   return true;
+    //   }
+    // }
+    // return false;
+
+    if(password === dbPassword) {
+      User.updateLoginTimestamp(username);
       return true;
-      }
     }
     return false;
   }
@@ -145,23 +157,26 @@ class User {
               m.read_at
         FROM messages AS m
         JOIN users AS u
-          ON m.from_username = $1
+          ON m.from_username = u.username
         JOIN users AS to_u
-          ON m.to_username = to_u.username`,
+          ON m.to_username = to_u.username
+        WHERE m.from_username = $1`,
       [username]);
+
+    console.log("TESTTTT-------", result.rows);
 
     return result.rows.map(
       r => ({
-        id: r.id,
-        to_user: {
-          username: r.username,
-          first_name: r.first_name,
-          last_name: r.last_name,
-          phone: r.phone
+        "id": r.id,
+        "to_user": {
+          "username": r.username,
+          "first_name": r.first_name,
+          "last_name": r.last_name,
+          "phone": r.phone
         },
-        body: r.body,
-        sent_at: r.sent_at,
-        read_at: r.read_at
+        "body": r.body,
+        "sent_at": r.sent_at,
+        "read_at": r.read_at
       }));
   }
 
@@ -196,10 +211,20 @@ class User {
               m.read_at
         FROM messages AS m
         JOIN users AS u
+          ON m.to_username = u.username
+        JOIN users AS f_u
+          ON m.from_username = f_u.username
+        WHERE m.to_username = $1`,
+      [username]);
+    // TODO:
+    /** The problem with
+     *  FROM messages AS m
+        JOIN users AS u
           ON m.to_username = $1
         JOIN users AS f_u
-          ON m.from_username = f_u.username`,
-      [username]);
+          ON m.from_username = f_u.username
+        (with no WHERE statement)
+     */
 
     return result.rows.map(
       r => ({
