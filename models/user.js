@@ -1,9 +1,10 @@
 "use strict";
 
-const { NotFoundError } = require("../expressError");
 const db = require("../db");
 const bcrypt = require("bcrypt");
-const BCRYPT_WORK_FACTOR = require("../config");
+
+const { NotFoundError } = require("../expressError");
+const { BCRYPT_WORK_FACTOR } = require("../config");
 
 /** User of the site. */
 
@@ -14,6 +15,11 @@ class User {
    */
 
   static async register({ username, password, first_name, last_name, phone }) {
+
+    // Store users passwords as a hash
+    const hashedPassword = await bcrypt.hash(
+      password, BCRYPT_WORK_FACTOR);
+
     const result = await db.query(
       `INSERT INTO users (username,
                          password,
@@ -24,51 +30,33 @@ class User {
         VALUES
           ($1, $2, $3, $4, $5, current_timestamp)
         RETURNING username, password, first_name, last_name, phone`,
-      [username, password, first_name, last_name, phone]);
+      [username, hashedPassword, first_name, last_name, phone]);
 
+    // Update user's last_login_at
     User.updateLoginTimestamp(username);
 
     return result.rows[0];
   }
 
   /** Authenticate: is username/password valid? Returns boolean. */
-  //TODO: is the incoming password to this method hashed or not??
-  // They are currently NOT HASHED
 
   static async authenticate(username, password) {
 
-    // hashes given password TODO: not implemented yet
-    // const hashedPassword = await bcrypt.hash(
-    //   password, BCRYPT_WORK_FACTOR);
-
-    // access stored known non-hashed password
+    // access stored known hashed password
     const result = await db.query(
         `SELECT password
         FROM users
         WHERE username = $1`,
         [username]);
-    if(result === undefined) {
-      throw new NotFoundError("No such user exists");
-      /** Giving information to a bad actor.
-       * Also NotFoundErrors reserved for a missing resource.
-       * This is not doing what the docstring says.
-       * Also if anything -- this is an Unauthorized Error not a 404NotFound.
-       * Until you're authenticated -- systems should be very terse/tightlipped.
-       */
-    }
-    const dbPassword = result.rows[0].password;
+    const user = result.rows[0];
 
-    // compare the given hash to the known hash TODO: bcrypt not implemented yet
-    // if (user !== undefined) {
-    //   if (await bcrypt.compare(hashedPassword, user.password) === true) {
-    //   return true;
-    //   }
-    // }
-    // return false;
-
-    if(password === dbPassword) {
+    // compare the given hash to the known hash
+    if (user !== undefined) {
+      if (await bcrypt.compare(password, user.password) === true) {
+      // Update user's last_login_at
       User.updateLoginTimestamp(username);
       return true;
+      }
     }
     return false;
   }
@@ -126,7 +114,7 @@ class User {
     const user = results.rows[0];
 
     if(user === undefined) {
-      throw new NotFoundError("No such user exists"); //NOTE: this is reasonable place for this/appropriate.
+      throw new NotFoundError("No such user exists");
     }
 
     return user;
@@ -179,7 +167,7 @@ class User {
         "body": r.body,
         "sent_at": r.sent_at,
         "read_at": r.read_at
-      })); 
+      }));
   }
 
   /** Return messages to this user.
