@@ -2,6 +2,8 @@
 
 const Router = require("express").Router;
 const router = new Router();
+const Message = require("../models/message");
+const middleWare = require("../middleware/auth");
 
 /** GET /:id - get detail of message.
  *
@@ -16,6 +18,9 @@ const router = new Router();
  *
  **/
 
+router.get("/:id", async function(req,res,next) {
+
+})
 
 /** POST / - post message.
  *
