@@ -39,7 +39,7 @@ class User {
   }
 
   /** Authenticate: is username/password valid? Returns boolean. */
-
+  //TODO: document side effects! in this case. we are updateLoginTimestamp!
   static async authenticate(username, password) {
 
     // access stored known hashed password
@@ -57,7 +57,7 @@ class User {
       User.updateLoginTimestamp(username);
       return true;
       }
-    }
+    }// good security code: well-nested if conditions!
     return false;
   }
 

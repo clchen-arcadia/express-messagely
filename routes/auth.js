@@ -12,16 +12,19 @@ const bcrypt = require("bcrypt");
 /** POST /login: {username, password} => {token} */
 
 router.post("/login", async function (req, res, next) {
-  // if(req.body===undefined) throw new BadRequestError();
-  const { username, password } = req.body;
+
+  if (req.body === undefined) throw new BadRequestError(); // keep this!
+  const { username, password } = req.body; //error here without prev line!
   if (!username || !password) throw new BadRequestError();
+
   if (await User.authenticate(req.body.username, req.body.password)) {
     const payload = { username };
     const token = jwt.sign(payload, SECRET_KEY);
-    return res.json({ token });
+    return res.json({ token }); //should update the User. thingy
   } else {
     throw new UnauthorizedError("Username and/or password doesn't exist in database");
-  }
+  } // new message --> "Invalid username or password"
+  // was thinking where is the updateLogin? document that its in the class method!
 });
 
 
@@ -33,10 +36,11 @@ router.post("/login", async function (req, res, next) {
 router.post("/register", async function (req, res, next) {
   if (req.body === undefined) throw new BadRequestError();
 
-  let username;
+  let username; // no good solutions for this :'(
   try {
-    username = await User.register(req.body).username;
-  } catch (IntegrityError) {
+    username = (await User.register(req.body)).username; // CAREFUL with the parens!
+      //isolate what is being await! (await ...) other stuff on the outside!
+  } catch (err) { // <--- again with no error class/filtering thingy.
     throw new BadRequestError("One or more value/s are invalid");
   }
 

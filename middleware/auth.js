@@ -27,15 +27,15 @@ function authenticateJWT(req, res, next) {
 /** Middleware: Requires user is authenticated. */
 
 function ensureLoggedIn(req, res, next) {
-  try {
+  // try {
     if (!res.locals.user) {
       throw new UnauthorizedError();
     } else {
       return next();
     }
-  } catch (err) {
-    return next(err);
-  }
+  // } catch (err) {
+    // return next(err);
+  // }
 }
 
 /** Middleware: Requires user is user for route. */
@@ -55,26 +55,26 @@ function ensureCorrectUser(req, res, next) {
 
 /** Middleware: Requires user is sender or receiver of message. */
 
-function ensureSenderReceiver(req, res, next) {
-  try {
+async function ensureSenderReceiver(req, res, next) {
+  // try {
     if(
       !res.locals.user ||
-      !Message.getSenderReceiver().includes(res.locals.user.username)) {
+      !(await Message.getSenderReceiver(req.params.id).includes(res.locals.user.username))) {
         throw new UnauthorizedError();
       } else {
         return next();
       }
-  } catch (err) {
-    return next(err);
-  }
+  // } catch (err) {
+    // return next(err);
+  // } //TODO: NOTE: this try catch block not necessary -- our thrown error can just go to global handler!
 }
 
 /** Middleware: Requires user is recipient of message.  */
 
-function ensureRecipient(req, res, next) {
+async function ensureRecipient(req, res, next) {
   try {
     if (!res.locals.user ||
-        res.locals.user.username !== Message.getReceiver(req.params.id)) {
+        res.locals.user.username !== await Message.getReceiver(req.params.id)) {
           throw new UnauthorizedError();
     } else {
       return next();

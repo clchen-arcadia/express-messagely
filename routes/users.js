@@ -9,6 +9,7 @@ const {
   ensureCorrectUser
 } = require("../middleware/auth");
 
+//TODO: app.js already runs authenticateJWT
 
 /** GET / - get list of users.
  *
@@ -17,10 +18,10 @@ const {
  **/
 
 router.get("/",
-  authenticateJWT,
+  // authenticateJWT,
   ensureLoggedIn,
   async function (req, res, next) {
-    return res.json({ users: await User.all() });
+    return res.json({ users: await User.all() }); //TODO: over simplification? const users first.
 });
 
 
@@ -72,6 +73,7 @@ router.get("/:username/from",
   async function (req, res, next) {
     return res.json({ messages: await User.messagesFrom(req.params.username) });
 });
-
+//TODO: you'll find your own style. but unused next arg in view function...
+//just be consistent.!
 
 module.exports = router;

@@ -24,11 +24,17 @@ const { BadRequestError } = require("../expressError");
  *
  **/
 
+//TODO: authenticateJWT!
+
 router.get("/:id",
   authenticateJWT,
   ensureSenderReceiver,
   async function(req,res,next) {
-    return res.json({message: await Message.get(req.params.id)});
+    return res.json({message: await Message.get(req.params.id)}); //not GENERIC middleware
+    //gray area! but API's need to match. a bit entangled.
+    //arguable that it's not worth it--just put it all into the ROUTE.
+    //TODO: reminder! if ensureSenderReceiver logic brought INTO this VIEW fn.
+    //remember: it was also ensuring Logged In!!
 })
 
 /** POST / - post message.
@@ -58,8 +64,9 @@ router.post("/",
         to_username,
         body
       });
-    } catch (IntegrityError) {
+    } catch (err) { // ANY error.... that's python land. //Reminder: any error! even if db is down!
       throw new BadRequestError("Unable to post this message");
+      //read the err instance? body or message or whatever.
     }
 
     return res.json({message});
@@ -79,7 +86,7 @@ router.post('/:id/read',
   ensureRecipient,
   async function (req, res, next) {
     return res.json({message: await Message.markRead(req.params.id)});
-  });
+  }); //TODO: again, repackage!split it up! also up to style. but also. split up this one.
 
 
 module.exports = router;
