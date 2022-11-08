@@ -100,6 +100,65 @@ class Message {
       read_at: m.read_at,
     };
   }
+
+  /** Get: username for user who sent this message
+   *  Returns: fromUsername
+   */
+  static async getSender(msg_id) {
+
+    const result = db.query(
+      `SELECT f_u.username AS "fromUsername"
+        FROM messages AS m
+        JOIN users AS f_u
+          ON m.from_username = f_u.username
+        WHERE m.id = $1`,
+        [msg_id]);
+    if(result.rows[0] === undefined) throw new NotFoundError();
+    const { fromUsername } = result.rows[0];
+
+    return fromUsername;
+  }
+
+
+  /** Get: username for user who received this message
+   *  Returns: toUsername
+   */
+  static async getReceiver(msg_id) {
+
+    const result = db.query(
+    `SELECT to_u.username AS "toUsername"
+      FROM messages AS m
+      JOIN users AS to_u
+        ON m.to_username = to_u.username
+      WHERE m.id = $1`,
+      [msg_id]);
+  if(result.rows[0] === undefined) throw new NotFoundError();
+  const { toUsername } = result.rows[0];
+
+  return toUsername;
+  }
+
+
+  /** Get: an array of usernames for who sent AND received this message
+   *  Returns: [ toUsername, fromUsername ]
+   */
+  static async getSenderReceiver(msg_id) {
+
+    const result = db.query(
+      `SELECT to_u.username AS "toUsername"
+              f_u.username AS "fromUsername"
+        FROM messages AS m
+        JOIN users AS to_u
+          ON m.to_username = to_u.username
+        JOIN users AS f_u
+          ON m.from_username = f_u.username
+        WHERE m.id = $1`,
+        [msg_id]);
+    if(result.rows[0] === undefined) throw new NotFoundError();
+    const { toUsername, fromUsername } = result.rows[0];
+
+    return [toUsername, fromUsername];
+  }
 }
 
 

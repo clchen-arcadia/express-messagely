@@ -3,7 +3,13 @@
 const Router = require("express").Router;
 const router = new Router();
 const Message = require("../models/message");
-const middleWare = require("../middleware/auth");
+const {
+  authenticateJWT,
+  ensureSenderReceiver,
+  ensureLoggedIn,
+  ensureRecipient
+} = require("../middleware/auth");
+const { BadRequestError } = require("../expressError");
 
 /** GET /:id - get detail of message.
  *
@@ -18,8 +24,11 @@ const middleWare = require("../middleware/auth");
  *
  **/
 
-router.get("/:id", async function(req,res,next) {
-
+router.get("/:id",
+  authenticateJWT,
+  ensureSenderReceiver,
+  async function(req,res,next) {
+    return res.json({message: await Message.get(req.params.id)});
 })
 
 /** POST / - post message.
@@ -29,6 +38,33 @@ router.get("/:id", async function(req,res,next) {
  *
  **/
 
+router.post("/",
+  authenticateJWT,
+  ensureLoggedIn,
+  async function (req, res, next) {
+    if (req.body === undefined) throw new BadRequestError();
+
+    const { to_username, body } = req.body;
+    if (to_username === undefined ||
+        body === undefined) {
+          throw new BadRequestError();
+        }
+
+    let message;
+
+    try {
+      message = await Message.create({
+        from_username: res.locals.user.username,
+        to_username,
+        body
+      });
+    } catch (IntegrityError) {
+      throw new BadRequestError("Unable to post this message");
+    }
+
+    return res.json({message});
+  });
+
 
 /** POST/:id/read - mark message as read:
  *
@@ -37,6 +73,13 @@ router.get("/:id", async function(req,res,next) {
  * Makes sure that the only the intended recipient can mark as read.
  *
  **/
+
+router.post('/:id/read',
+  authenticateJWT,
+  ensureRecipient,
+  async function (req, res, next) {
+    return res.json({message: await Message.markRead(req.params.id)});
+  });
 
 
 module.exports = router;

@@ -7,6 +7,8 @@ const jwt = require("jsonwebtoken");
 const { SECRET_KEY } = require("../config");
 const { UnauthorizedError } = require("../expressError");
 
+const Message = require("../models/message");
+
 
 /** Middleware: Authenticate user. */
 
@@ -51,9 +53,42 @@ function ensureCorrectUser(req, res, next) {
   }
 }
 
+/** Middleware: Requires user is sender or receiver of message. */
+
+function ensureSenderReceiver(req, res, next) {
+  try {
+    if(
+      !res.locals.user ||
+      !Message.getSenderReceiver().includes(res.locals.user.username)) {
+        throw new UnauthorizedError();
+      } else {
+        return next();
+      }
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/** Middleware: Requires user is recipient of message.  */
+
+function ensureRecipient(req, res, next) {
+  try {
+    if (!res.locals.user ||
+        res.locals.user.username !== Message.getReceiver(req.params.id)) {
+          throw new UnauthorizedError();
+    } else {
+      return next();
+    }
+  } catch (err) {
+    return next(err);
+  }
+}
+
 
 module.exports = {
   authenticateJWT,
   ensureLoggedIn,
   ensureCorrectUser,
+  ensureSenderReceiver,
+  ensureRecipient
 };
