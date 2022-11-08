@@ -2,13 +2,13 @@
 
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
+const {SECRET_KEY} = require("../config");
 
 const app = require("../app");
 const db = require("../db");
 const Message = require("../models/message");
 const User = require("../models/user");
 
-// req, res, next ONLY IN VIEW FUNCTIONS
 
 describe("Message Route Test", function () {
 
@@ -51,10 +51,6 @@ describe("Message Route Test", function () {
       to_username: "test1",
       body: "u2-to-u1",
     });
-    // res.message = {
-    //   m1: m1.id,
-    //   m2: m2.id
-    // };
   });
 
   /** GET /:id - get detail of message.
@@ -68,7 +64,35 @@ describe("Message Route Test", function () {
       expect(response.statusCode).toEqual(401);
     });
 
-    // test("can't view message because this user is not allowed", async function)
+    test("can't view message because this user is not allowed", async function () {
+      // let responseLogin = await request(app)
+      //   .post("/auth/login")
+      //   .send({
+      //     username: "test3",
+      //     password: "password"
+      //   });
+
+      //   // try:       let token = response.body.token;
+
+      //   console.log("responseLogin is", Object.keys(responseLogin.text));
+      // const token3 = responseLogin.text.token;
+      // console.log("token3 =", token3);
+
+      console.log("User all is", await User.all());
+      console.log("m1 is", await Message.get(m1.id));
+
+      const username = "test3";
+      const payload = { username };
+      const token3 = jwt.sign(payload, SECRET_KEY);
+
+      console.log("token3 =", token3);
+
+
+      let response = await request(app)
+        .get(`/messages/${m1.id}?_token=${token3}`);
+      expect(response.statusCode).toEqual(401);
+    });
+
 
   });
 
